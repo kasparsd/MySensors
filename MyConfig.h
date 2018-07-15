@@ -576,19 +576,19 @@
  * @def MY_RADIO_RFM69
  * @brief Define this to use %RFM69 based radios for sensor network communication.
  */
-//#define MY_RADIO_RFM69
+#define MY_RADIO_RFM69
 
 /**
  * @def MY_DEBUG_VERBOSE_RFM69
  * @brief Define this for verbose debug prints related to the %RFM69 driver.
  */
-//#define MY_DEBUG_VERBOSE_RFM69
+#define MY_DEBUG_VERBOSE_RFM69
 
 /**
  * @def MY_DEBUG_VERBOSE_RFM69_REGISTERS
  * @brief Define this for verbose dumping of the %RFM69 registers.
  */
-//#define MY_DEBUG_VERBOSE_RFM69_REGISTERS
+#define MY_DEBUG_VERBOSE_RFM69_REGISTERS
 
 /**
  * @def MY_RFM69_NEW_DRIVER
@@ -596,7 +596,7 @@
  *
  * @note  This driver is not compatible with the old (=default) %RFM69 driver.
  */
-//#define MY_RFM69_NEW_DRIVER
+#define MY_RFM69_NEW_DRIVER
 
 /**
  * @def MY_RFM69_FREQUENCY
@@ -1141,7 +1141,7 @@
  *        data.
  * @note Enabled by default.
  */
-#define MY_REGISTRATION_FEATURE
+//#define MY_REGISTRATION_FEATURE
 
 /**
  * @def MY_REGISTRATION_RETRIES

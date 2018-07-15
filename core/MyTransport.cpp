@@ -965,10 +965,13 @@ void transportProcessFIFO(void)
 #endif
 
 	uint8_t _processedMessages = MAX_SUBSEQ_MSGS;
+
 	// process all msgs in FIFO or counter exit
 	while (transportAvailable() && _processedMessages--) {
+		TRANSPORT_DEBUG(PSTR("Available and processing!\n"));
 		transportProcessMessage();
 	}
+
 #if defined(MY_OTA_FIRMWARE_FEATURE)
 	if (isTransportReady()) {
 		// only process if transport ok

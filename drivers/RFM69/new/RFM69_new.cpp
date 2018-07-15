@@ -217,7 +217,7 @@ LOCAL bool RFM69_initialise(const uint32_t frequencyHz)
 #else
 	(void)RFM69_readAllRegs;
 #endif
-	//RFM69_DEBUG(PSTR("RFM69:INIT:HWV=%" PRIu8 "\n"),RFM69_readReg(RFM69_REG_VERSION));
+	RFM69_DEBUG(PSTR("RFM69:INIT:HWV=%" PRIu8 "\n"),RFM69_readReg(RFM69_REG_VERSION));
 
 	if (!RFM69_sanityCheck()) {
 		// sanity check failed, check wiring or replace module
@@ -245,12 +245,16 @@ LOCAL void RFM69_interruptHandler(void)
 LOCAL void RFM69_interruptHandling(void)
 {
 	const uint8_t regIrqFlags2 = RFM69_readReg(RFM69_REG_IRQFLAGS2);
+
+	RFM69_DEBUG(PSTR("INT received\n"));
+
 	if (RFM69.radioMode == RFM69_RADIO_MODE_RX && (regIrqFlags2 & RFM69_IRQFLAGS2_PAYLOADREADY)) {
 		(void)RFM69_setRadioMode(RFM69_RADIO_MODE_STDBY);
 		// use the fifo level irq as indicator if header bytes received
 		if (regIrqFlags2 & RFM69_IRQFLAGS2_FIFOLEVEL) {
 			RFM69_prepareSPITransaction();
 			RFM69_csn(LOW);
+
 #if defined(LINUX_SPI_BCM)
 			char data[RFM69_MAX_PACKET_LEN + 1];   // max packet len + 1 byte for the command
 			data[0] = RFM69_REG_FIFO & RFM69_READ_REGISTER;
@@ -422,9 +426,9 @@ LOCAL bool RFM69_send(const uint8_t recipient, uint8_t *data, const uint8_t len,
 LOCAL void RFM69_setFrequency(const uint32_t frequencyHz)
 {
 	const uint32_t freqHz = (uint32_t)(frequencyHz / RFM69_FSTEP);
-	RFM69_writeReg(RFM69_REG_FRFMSB, (uint8_t)((freqHz >> 16) & 0xFF));
-	RFM69_writeReg(RFM69_REG_FRFMID, (uint8_t)((freqHz >> 8) & 0xFF));
-	RFM69_writeReg(RFM69_REG_FRFLSB, (uint8_t)(freqHz & 0xFF));
+	RFM69_writeReg(RFM69_REG_FRFMSB, 0x6C);
+	RFM69_writeReg(RFM69_REG_FRFMID, 0x40);
+	RFM69_writeReg(RFM69_REG_FRFLSB, 0x00);
 }
 
 LOCAL void RFM69_setHighPowerRegs(const bool onOff)
@@ -704,32 +708,34 @@ LOCAL bool RFM69_sanityCheck(void)
 
 LOCAL void RFM69_setConfiguration(void)
 {
+	// RFM69_FSK_BR55_5_FD50 = RFM69_CONFIG_FSK, RFM69_BITRATEMSB_55555, RFM69_BITRATELSB_55555, RFM69_FDEVMSB_50000, RFM69_FDEVLSB_50000, RFM69_RXBW_111_16_2, RFM69_CONFIG_WHITE
 	const uint8_t rfm69_modem_config[] = { MY_RFM69_MODEM_CONFIGURATION };
 	const uint8_t CONFIG[][2] = {
 		{ RFM69_REG_OPMODE, RFM69_OPMODE_SEQUENCER_ON | RFM69_OPMODE_LISTEN_OFF | RFM69_OPMODE_STANDBY },
-		{ RFM69_REG_DATAMODUL, rfm69_modem_config[0] },
-		{ RFM69_REG_BITRATEMSB, rfm69_modem_config[1] },
-		{ RFM69_REG_BITRATELSB, rfm69_modem_config[2] },
-		{ RFM69_REG_FDEVMSB, rfm69_modem_config[3] },
-		{ RFM69_REG_FDEVLSB, rfm69_modem_config[4] },
-		{ RFM69_REG_LNA, RFM69_LNA_ZIN_200 | RFM69_LNA_CURRENTGAIN },
-		{ RFM69_REG_RXBW, rfm69_modem_config[5] },
-		{ RFM69_REG_AFCBW, rfm69_modem_config[5] }, // same as rxbw, experimental, based on datasheet
-		//{ RFM69_REG_DIOMAPPING1, RFM69_DIOMAPPING1_DIO0_01 },
+		{ RFM69_REG_DATAMODUL, RFM69_DATAMODUL_DATAMODE_PACKET | RFM69_DATAMODUL_MODULATIONTYPE_FSK | RFM69_DATAMODUL_MODULATIONSHAPING_00 },
+		{ RFM69_REG_BITRATEMSB, RFM69_BITRATEMSB_55555 },
+		{ RFM69_REG_BITRATELSB, RFM69_BITRATELSB_55555 },
+		{ RFM69_REG_FDEVMSB, RFM69_FDEVMSB_50000 },
+		{ RFM69_REG_FDEVLSB, RFM69_FDEVLSB_50000 },
+		//{ RFM69_REG_LNA, RFM69_LNA_ZIN_200 | RFM69_LNA_CURRENTGAIN },
+		{ RFM69_REG_RXBW, 0x42 },
+		{ RFM69_REG_AFCBW, 0x40 }, // same as rxbw, experimental, based on datasheet
+		{ RFM69_REG_DIOMAPPING1, RFM69_DIOMAPPING1_DIO0_01 },
 		{ RFM69_REG_DIOMAPPING2, RFM69_DIOMAPPING2_CLKOUT_OFF },
 		{ RFM69_REG_IRQFLAGS2, RFM69_IRQFLAGS2_FIFOOVERRUN },		// clear FIFO and flags
 		{ RFM69_REG_RSSITHRESH, RFM69_RSSITHRESH_VALUE },
-		{ RFM69_REG_PREAMBLEMSB, RFM69_PREAMBLESIZE_MSB_VALUE },
-		{ RFM69_REG_PREAMBLELSB, RFM69_PREAMBLESIZE_LSB_VALUE },
+		//{ RFM69_REG_PREAMBLEMSB, RFM69_PREAMBLESIZE_MSB_VALUE },
+		//{ RFM69_REG_PREAMBLELSB, RFM69_PREAMBLESIZE_LSB_VALUE },
 		{ RFM69_REG_SYNCCONFIG, RFM69_SYNC_ON | RFM69_SYNC_FIFOFILL_AUTO | RFM69_SYNC_SIZE_2 | RFM69_SYNC_TOL_0 },
 		{ RFM69_REG_SYNCVALUE1, RFM69_SYNCVALUE1 },
 		{ RFM69_REG_SYNCVALUE2, MY_RFM69_NETWORKID },
-		{ RFM69_REG_PACKETCONFIG1, rfm69_modem_config[6] },
-		{ RFM69_REG_PAYLOADLENGTH, RFM69_MAX_PACKET_LEN }, // in variable length mode: the max frame size, not used in TX
-		{ RFM69_REG_NODEADRS, RFM69_BROADCAST_ADDRESS },	// init
-		{ RFM69_REG_BROADCASTADRS, RFM69_BROADCAST_ADDRESS },
-		{ RFM69_REG_FIFOTHRESH, RFM69_FIFOTHRESH_TXSTART_FIFOTHRESH | (RFM69_HEADER_LEN - 1) },	// start transmitting when rfm69 header loaded, fifo level irq when header bytes received (irq asserted when n bytes exceeded)
-		{ RFM69_REG_PACKETCONFIG2, RFM69_PACKET2_RXRESTARTDELAY_2BITS | RFM69_PACKET2_AUTORXRESTART_OFF | RFM69_PACKET2_AES_OFF },
+		// { RFM69_REG_PACKETCONFIG1, RFM69_PACKET1_FORMAT_VARIABLE | RFM69_PACKET1_DCFREE_OFF | RFM69_PACKET1_CRC_ON | RFM69_PACKET1_CRCAUTOCLEAR_ON | RFM69_PACKET1_ADRSFILTERING_OFF },
+		{ RFM69_REG_PACKETCONFIG1, 0x90 },
+		{ RFM69_REG_PAYLOADLENGTH, 0x42 }, // in variable length mode: the max frame size, not used in TX
+		//{ RFM69_REG_NODEADRS, RFM69_BROADCAST_ADDRESS }, // init
+		//{ RFM69_REG_BROADCASTADRS, RFM69_BROADCAST_ADDRESS },
+		{ RFM69_REG_FIFOTHRESH, RFM69_FIFOTHRESH_TXSTART_FIFONOTEMPTY | 0x0F },	// start transmitting when rfm69 header loaded, fifo level irq when header bytes received (irq asserted when n bytes exceeded)
+		{ RFM69_REG_PACKETCONFIG2, RFM69_PACKET2_RXRESTARTDELAY_2BITS | RFM69_PACKET2_AUTORXRESTART_ON | RFM69_PACKET2_AES_OFF },
 		{ RFM69_REG_TESTDAGC, RFM69_DAGC_IMPROVED_LOWBETA0 }, // continuous DAGC mode, use 0x30 if afc offset == 0
 		{ 255, 0}
 	};

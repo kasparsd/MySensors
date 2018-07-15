@@ -812,7 +812,7 @@
 
 
 // RegRssiThresh
-#define RFM69_RSSITHRESH_VALUE               0xE4  // Default
+#define RFM69_RSSITHRESH_VALUE               0xDC  // Default
 
 
 // RegRxTimeout1

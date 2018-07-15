@@ -28,75 +28,43 @@
 
 // How many clients should be able to connect to this gateway (default 1)
 #define MY_GATEWAY_MAX_CLIENTS 10
-
-// Serial config
-// Enable this if you are using an Arduino connected to the USB
-//#define MY_LINUX_SERIAL_PORT "/dev/ttyUSB0"
-// Enable this if you need to connect to a controller running on the same device
-// You also need to define MY_LINUX_SERIAL_PORT above with the symlink name for the PTY device
-//#define MY_LINUX_SERIAL_IS_PTY
-// Grant access to the specified system group for the serial device
-//#define MY_LINUX_SERIAL_GROUPNAME "tty"
-
-// MQTT options
-//#define MY_CONTROLLER_IP_ADDRESS 192, 168, 178, 68
-//#define MY_PORT 1883
-//#define MY_MQTT_CLIENT_ID "mysensors-1"
-//#define MY_MQTT_PUBLISH_TOPIC_PREFIX "mygateway1-out"
-//#define MY_MQTT_SUBSCRIBE_TOPIC_PREFIX "mygateway1-in"
-
-// Enable these if your MQTT broker requires username/password
-//#define MY_MQTT_USER "username"
-//#define MY_MQTT_PASSWORD "password"
-
-// Flash leds on rx/tx/err
-//#define MY_DEFAULT_ERR_LED_PIN 12  // Error LED pin
-//#define MY_DEFAULT_RX_LED_PIN  16  // Receive LED pin
-//#define MY_DEFAULT_TX_LED_PIN  18  // Transmit LED pin
-// Inverse the blinking feature
-//#define MY_WITH_LEDS_BLINKING_INVERSE
-
-// Enable software signing
-//#define MY_SIGNING_SOFT
-// Enable signing related debug
-//#define MY_DEBUG_VERBOSE_SIGNING
-// Enable this to request signatures
-//#define MY_SIGNING_REQUEST_SIGNATURES
-// Enable this to to weaken security for gradual deployment purpose
-// (see signing documentation for details)
-//#define MY_SIGNING_WEAK_SECURITY
-
-// Enables RF24 encryption (all nodes and gateway must have this enabled, and all must be
-// personalized with the same AES key)
-//#define MY_RF24_ENABLE_ENCRYPTION
-
-// Enable inclusion mode if your HA Controller supports it (e.g. Vera Controller)
-//#define MY_INCLUSION_MODE_FEATURE
-// Enable Inclusion mode button on gateway
-//#define MY_INCLUSION_BUTTON_FEATURE
-// Set inclusion mode duration (in seconds)
-//#define MY_INCLUSION_MODE_DURATION 60
-// Digital pin used for inclusion mode button
-//#define MY_INCLUSION_MODE_BUTTON_PIN  3
+#define RFM69_REGISTER_DETAIL
 
 #include <MySensors.h>
 
-#define ARDUINO 100
-// This space is intended to be used to include arduino libraries
+#define CHILD_ID 1
 
-#undef ARDUINO
+bool state;
+
+MyMessage msg(CHILD_ID, V_STATUS);
 
 void setup()
 {
 	// Setup locally attached sensors
+	state = loadState(CHILD_ID);
 }
 
 void presentation()
 {
 	// Present locally attached sensors here
+	sendSketchInfo("Battery Light Local", "1.9");
+	present(CHILD_ID, S_BINARY);
 }
 
 void loop()
 {
 	// Send locally attached sensors data here
+	send(msg.set(state?1:0));
+	sendBatteryLevel(55);
+	wait(5000);
 }
+
+void receive(const MyMessage &message)
+{
+	if (message.type==V_STATUS) {
+		state = message.getBool();
+		saveState(CHILD_ID, state?1:0);
+		send(msg.set(state?1:0));
+	}
+}
+
